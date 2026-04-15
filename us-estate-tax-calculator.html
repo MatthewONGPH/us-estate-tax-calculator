@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>US Estate Tax Calculator for Singaporeans | Non-Resident Alien</title>
+  <meta name="description" content="Calculate your US estate tax exposure as a Singaporean investor. Understand how US-situs assets like US ETFs and stocks are taxed for non-resident aliens with only a USD 60,000 exemption." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f0efeb;
+      --border: rgba(0,0,0,0.1);
+      --border-strong: rgba(0,0,0,0.18);
+      --text: #1a1918;
+      --text-2: #5a5956;
+      --text-3: #9a9895;
+      --danger: #c0392b;
+      --danger-bg: #fdf2f1;
+      --danger-border: rgba(192,57,43,0.2);
+      --success: #0f6e56;
+      --success-bg: #edf7f3;
+      --success-border: rgba(15,110,86,0.2);
+      --info: #185fa5;
+      --info-bg: #edf4fc;
+      --info-border: rgba(24,95,165,0.2);
+      --warn-bg: #fef9ec;
+      --warn-border: rgba(186,117,23,0.25);
+      --warn-text: #7a4f0a;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111110;
+        --surface: #1c1c1a;
+        --surface2: #252523;
+        --border: rgba(255,255,255,0.1);
+        --border-strong: rgba(255,255,255,0.18);
+        --text: #f0efe9;
+        --text-2: #a8a7a2;
+        --text-3: #6a6966;
+        --danger: #e87070;
+        --danger-bg: rgba(232,112,112,0.1);
+        --danger-border: rgba(232,112,112,0.2);
+        --success: #5dcaa5;
+        --success-bg: rgba(93,202,165,0.1);
+        --success-border: rgba(93,202,165,0.2);
+        --info: #85b7eb;
+        --info-bg: rgba(133,183,235,0.1);
+        --info-border: rgba(133,183,235,0.2);
+        --warn-bg: rgba(239,159,39,0.1);
+        --warn-border: rgba(239,159,39,0.2);
+        --warn-text: #ef9f27;
+      }
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+    }
+    .header-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-size: 14px; font-weight: 500; color: var(--text-2); letter-spacing: 0.02em; }
+    .logo span { color: var(--text); }
+    .disclaimer-badge {
+      font-size: 11px;
+      color: var(--warn-text);
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    main { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      margin-bottom: 0.5rem;
+    }
+    .page-subtitle {
+      font-size: 15px;
+      color: var(--text-2);
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      padding: 8px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-2);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .toggle-row {
+      display: flex;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      width: fit-content;
+      margin-bottom: 1.5rem;
+    }
+    .toggle-btn {
+      padding: 7px 20px;
+      font-size: 13px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-2);
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toggle-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 520px) { .input-grid { grid-template-columns: 1fr; } }
+    .input-group { display: flex; flex-direction: column; gap: 5px; }
+    .input-group label { font-size: 13px; color: var(--text-2); }
+    .input-group input {
+      padding: 9px 12px;
+      font-size: 14px;
+      font-family: 'DM Mono', monospace;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .input-group input:focus { border-color: var(--border-strong); background: var(--surface); }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .metric-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 520px) { .metric-grid, .metric-grid-3 { grid-template-columns: repeat(2, 1fr); } }
+    .metric { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 16px; }
+    .metric .m-label { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+    .metric .m-value { font-size: 20px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text); }
+    .metric .m-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+    .metric.danger .m-value { color: var(--danger); }
+    .metric.success .m-value { color: var(--success); }
+    .metric.info .m-value { color: var(--info); }
+
+    .info-card {
+      background: var(--info-bg);
+      border: 1px solid var(--info-border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--info);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    .warn-card {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--warn-text);
+      line-height: 1.6;
+    }
+    .success-card {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--success);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .chart-wrap { position: relative; width: 100%; height: 220px; margin: 1rem 0; }
+
+    .bracket-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .bracket-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .bracket-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .bracket-table tr:last-child td { border-bottom: none; }
+    .bracket-table .rate-cell { font-family: 'DM Mono', monospace; font-weight: 500; }
+    .bracket-table .tax-cell { font-family: 'DM Mono', monospace; color: var(--danger); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
+    .tag { display: inline-block; font-size: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+    .tag-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .tag-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-warn { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-3);
+      max-width: 780px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo"><span>US Estate Tax</span> · For Singaporeans</div>
+    <div class="disclaimer-badge">Estimates only — not tax advice</div>
+  </div>
+</header>
+
+<main>
+  <h1 class="page-title">How much US estate tax<br>could your family owe?</h1>
+  <p class="page-subtitle">Singaporeans holding US stocks, ETFs, or other US-situs assets receive only a USD 60,000 exemption on death — versus USD 13.61M for US persons. There is no Singapore–US estate tax treaty.</p>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('calc', this)">Calculator</button>
+      <button class="tab" onclick="switchTab('brackets', this)">Tax brackets</button>
+      <button class="tab" onclick="switchTab('guide', this)">What counts?</button>
+    </div>
+
+    <div id="tab-calc" class="panel active">
+      <p class="section-label">Display currency</p>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="btn-usd" onclick="setCurrency('usd')">USD $</button>
+        <button class="toggle-btn" id="btn-sgd" onclick="setCurrency('sgd')">SGD S$</button>
+      </div>
+
+      <p class="section-label">Your US-situs holdings</p>
+      <div class="input-grid">
+        <div class="input-group">
+          <label>US stocks &amp; ETFs held (USD)</label>
+          <input type="number" id="usStocks" min="0" step="1000" value="200000" oninput="calculate()" />
+        </div>
+        <div class="input-group">
+          <label>Other US-situs assets (USD)</label>
+          <input type="number" id="otherUs" min="0" step="1000" value="0" oninput="calculate()" />
+        </div>
+      </div>
+      <div class="input-grid">
+        <div class="input-group">
+          <label>USD / SGD exchange rate</label>
+          <input type="number" id="fxRate" min="1" max="2" step="0.01" value="1.34" oninput="calculate()" />
+        </div>
+        <div class="input-group">
+          <label>NRA exemption (USD)</label>
+          <input type="number" id="exemption" value="60000" oninput="calculate()" />
+        </div>
+      </div>
+
+      <hr />
+      <p class="section-label">Results</p>
+
+      <div id="no-tax-card" style="display:none;" class="success-card">
+        Your US-situs estate is within the USD 60,000 NRA exemption. No US estate tax is owed currently.
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="m-label">Total US-situs estate</div>
+          <div class="m-value" id="r-total">—</div>
+          <div class="m-sub" id="r-total-sub"></div>
+        </div>
+        <div class="metric success">
+          <div class="m-label">NRA exemption</div>
+          <div class="m-value" id="r-exempt">—</div>
+          <div class="m-sub">Non-resident allowance</div>
+        </div>
+        <div class="metric info">
+          <div class="m-label">Taxable estate</div>
+          <div class="m-value" id="r-taxable">—</div>
+          <div class="m-sub" id="r-taxable-sub"></div>
+        </div>
+        <div class="metric danger">
+          <div class="m-label">Estimated estate tax</div>
+          <div class="m-value" id="r-tax">—</div>
+          <div class="m-sub" id="r-tax-sub"></div>
+        </div>
+      </div>
+      <div class="metric-grid-3">
+        <div class="metric">
+          <div class="m-label">Effective tax rate</div>
+          <div class="m-value" id="r-eff">—</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Marginal rate</div>
+          <div class="m-value" id="r-marginal">—</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Net estate (after tax)</div>
+          <div class="m-value" id="r-net">—</div>
+        </div>
+      </div>
+
+      <div id="chart-section">
+        <hr />
+        <p class="section-label">Estate breakdown</p>
+        <div class="chart-wrap">
+          <canvas id="breakdownChart" role="img" aria-label="Bar chart showing exempt, net taxable, and estate tax owed portions of US-situs estate"></canvas>
+        </div>
+      </div>
+
+      <hr />
+      <div class="warn-card">
+        <strong>Important:</strong> Singapore has no estate tax treaty with the US. As a Singaporean NRA, you receive only the USD 60,000 exemption — versus USD 13.61 million for US citizens and residents. This calculator provides estimates only and does not constitute tax or legal advice. Consult a cross-border estate planning specialist.
+      </div>
+    </div>
+
+    <div id="tab-brackets" class="panel">
+      <p class="section-label">US estate tax rate schedule — IRS Table A (Unified Rate Schedule)</p>
+      <table class="bracket-table">
+        <thead>
+          <tr>
+            <th>Taxable amount over (Col. A)</th>
+            <th>Not over (Col. B)</th>
+            <th>Tax on col. A amount (Col. C)</th>
+            <th>Rate on excess (Col. D)</th>
+          </tr>
+        </thead>
+        <tbody id="bracketBody"></tbody>
+      </table>
+      <div class="info-card" style="margin-top: 1.5rem;">
+        The NRA unified credit is USD 13,000, which offsets tax on the first USD 60,000. For US citizens and domiciliaries, the exemption is USD 13.61M (2024) — expected to drop to approximately USD 7M when the Tax Cuts and Jobs Act sunsets at end of 2025.
+      </div>
+    </div>
+
+    <div id="tab-guide" class="panel">
+      <p class="section-label">Subject to US estate tax (US-situs assets)</p>
+      <div class="tags">
+        <span class="tag tag-danger">US-listed stocks</span>
+        <span class="tag tag-danger">US ETFs (SPY, QQQ, VTI, VOO…)</span>
+        <span class="tag tag-danger">US mutual funds</span>
+        <span class="tag tag-danger">US bonds &amp; treasuries</span>
+        <span class="tag tag-danger">US real estate</span>
+        <span class="tag tag-danger">US brokerage cash (USD)</span>
+        <span class="tag tag-danger">US-domiciled REITs</span>
+      </div>
+
+      <p class="section-label">Generally not subject to US estate tax</p>
+      <div class="tags">
+        <span class="tag tag-success">Irish-domiciled ETFs (UCITS)</span>
+        <span class="tag tag-success">Singapore-listed stocks &amp; ETFs</span>
+        <span class="tag tag-success">SGD bank deposits</span>
+        <span class="tag tag-success">Singapore property</span>
+        <span class="tag tag-success">CPF savings</span>
+        <span class="tag tag-success">SRS funds</span>
+        <span class="tag tag-success">Singapore bonds &amp; SSBs</span>
+      </div>
+
+      <p class="section-label">Requires professional verification</p>
+      <div class="tags" style="margin-bottom: 1.5rem;">
+        <span class="tag tag-warn">ADRs (US-listed, foreign company)</span>
+        <span class="tag tag-warn">Options on US stocks</span>
+        <span class="tag tag-warn">US-listed foreign ETFs</span>
+      </div>
+
+      <div class="info-card">
+        <strong>The Irish ETF alternative:</strong> UCITS ETFs domiciled in Ireland (e.g. IWDA, CSPX, VWRA on the London Stock Exchange) track the same indices as US ETFs but are not US-situs assets. Singaporean investors holding Irish-domiciled equivalents avoid US estate tax exposure entirely. Verify suitability with a financial adviser.
+      </div>
+      <div class="warn-card" style="margin-top: 1rem;">
+        <strong>No treaty protection:</strong> Countries like the UK, Germany, and France have US estate tax treaties raising their citizens' US-situs exemption to USD 11.18M+. Singapore has no such treaty. Singaporeans receive only the USD 60,000 NRA exemption.
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>This calculator is for illustrative purposes only and does not constitute tax, legal, or financial advice.</p>
+  <p style="margin-top: 6px;">Always consult a qualified cross-border estate planning adviser. Tax laws are subject to change.</p>
+</footer>
+
+<script>
+const brackets = [
+  { from: 0,        to: 10000,    baseTax: 0,       rate: 0.18 },
+  { from: 10000,    to: 20000,    baseTax: 1800,    rate: 0.20 },
+  { from: 20000,    to: 40000,    baseTax: 3800,    rate: 0.22 },
+  { from: 40000,    to: 60000,    baseTax: 8200,    rate: 0.24 },
+  { from: 60000,    to: 80000,    baseTax: 13000,   rate: 0.26 },
+  { from: 80000,    to: 100000,   baseTax: 18200,   rate: 0.28 },
+  { from: 100000,   to: 150000,   baseTax: 23800,   rate: 0.30 },
+  { from: 150000,   to: 250000,   baseTax: 38800,   rate: 0.32 },
+  { from: 250000,   to: 500000,   baseTax: 70800,   rate: 0.34 },
+  { from: 500000,   to: 750000,   baseTax: 155800,  rate: 0.37 },
+  { from: 750000,   to: 1000000,  baseTax: 248300,  rate: 0.39 },
+  { from: 1000000,  to: Infinity, baseTax: 345800,  rate: 0.40 }
+];
+
+let currency = 'usd';
+let chartInstance = null;
+
+function fmt(val, c) {
+  const sym = c === 'sgd' ? 'S$' : 'US$';
+  if (val >= 1000000) return sym + (val / 1000000).toFixed(2) + 'M';
+  return sym + Math.round(val).toLocaleString();
+}
+
+function computeTax(totalEstate) {
+  if (totalEstate <= 0) return 0;
+  let bracket = brackets[brackets.length - 1];
+  for (const b of brackets) {
+    if (totalEstate <= b.to) { bracket = b; break; }
+  }
+  const tentativeTax = bracket.baseTax + (totalEstate - bracket.from) * bracket.rate;
+  return Math.max(0, tentativeTax - 13000);
+}
+
+function getMarginalRate(taxableEstate) {
+  if (taxableEstate <= 0) return 0;
+  for (const b of brackets) { if (taxableEstate <= b.to) return b.rate; }
+  return 0.40;
+}
+
+function setCurrency(c) {
+  currency = c;
+  document.getElementById('btn-usd').classList.toggle('active', c === 'usd');
+  document.getElementById('btn-sgd').classList.toggle('active', c === 'sgd');
+  calculate();
+}
+
+function switchTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+function calculate() {
+  const usStocks = parseFloat(document.getElementById('usStocks').value) || 0;
+  const otherUs = parseFloat(document.getElementById('otherUs').value) || 0;
+  const fx = parseFloat(document.getElementById('fxRate').value) || 1.34;
+  const exemption = parseFloat(document.getElementById('exemption').value) || 60000;
+
+  const totalUSD = usStocks + otherUs;
+  const exemptAmt = Math.min(totalUSD, exemption);
+  const taxableUSD = Math.max(0, totalUSD - exemption);
+  const taxUSD = computeTax(totalUSD);
+  const netUSD = totalUSD - taxUSD;
+  const marginalRate = getMarginalRate(taxableUSD);
+  const effRate = totalUSD > 0 ? (taxUSD / totalUSD) : 0;
+  const mult = currency === 'sgd' ? fx : 1;
+  const c = currency;
+
+  document.getElementById('r-total').textContent = fmt(totalUSD * mult, c);
+  document.getElementById('r-total-sub').textContent = currency === 'sgd' ? fmt(totalUSD, 'usd') : '';
+  document.getElementById('r-exempt').textContent = fmt(exemptAmt * mult, c);
+  document.getElementById('r-taxable').textContent = fmt(taxableUSD * mult, c);
+  document.getElementById('r-taxable-sub').textContent = currency === 'sgd' ? fmt(taxableUSD, 'usd') : '';
+  document.getElementById('r-tax').textContent = fmt(taxUSD * mult, c);
+  document.getElementById('r-tax-sub').textContent = currency === 'sgd' ? fmt(taxUSD, 'usd') : '';
+  document.getElementById('r-eff').textContent = (effRate * 100).toFixed(1) + '%';
+  document.getElementById('r-marginal').textContent = (marginalRate * 100).toFixed(0) + '%';
+  document.getElementById('r-net').textContent = fmt(netUSD * mult, c);
+
+  document.getElementById('no-tax-card').style.display = (taxUSD === 0 && totalUSD > 0) ? 'block' : 'none';
+  document.getElementById('chart-section').style.display = totalUSD > 0 ? 'block' : 'none';
+
+  if (totalUSD > 0) drawChart(exemptAmt, taxableUSD - taxUSD, taxUSD, mult, c);
+}
+
+function drawChart(exempt, netTaxable, tax, mult, c) {
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const data = [exempt * mult, netTaxable * mult, tax * mult];
+  const colors = isDark ? ['#5dcaa5', '#85b7eb', '#e87070'] : ['#1D9E75', '#378ADD', '#E24B4A'];
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  chartInstance = new Chart(document.getElementById('breakdownChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Exempt (NRA allowance)', 'Net taxable estate', 'Estate tax owed'],
+      datasets: [{ data, backgroundColor: colors, borderRadius: 5, barPercentage: 0.55 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw, c) } }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 12, family: 'DM Sans' }, color: isDark ? '#6a6966' : '#9a9895' }
+        },
+        y: {
+          grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
+          ticks: {
+            font: { size: 11, family: 'DM Mono' },
+            color: isDark ? '#6a6966' : '#9a9895',
+            callback: v => fmt(v, c)
+          }
+        }
+      }
+    }
+  });
+}
+
+function buildBracketTable() {
+  const tbody = document.getElementById('bracketBody');
+  brackets.forEach(b => {
+    const tr = document.createElement('tr');
+    const colA = fmtB(b.from);
+    const colB = b.to === Infinity ? '——' : fmtB(b.to);
+    const colC = '$' + b.baseTax.toLocaleString();
+    const colD = (b.rate * 100).toFixed(0) + '%';
+    tr.innerHTML = '<td>' + colA + '</td><td>' + colB + '</td><td class="tax-cell">' + colC + '</td><td class="rate-cell">' + colD + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function fmtB(v) {
+  if (v === 0) return '$0';
+  if (v >= 1000000) return '$' + (v / 1000000) + 'M';
+  return '$' + v.toLocaleString();
+}
+
+buildBracketTable();
+calculate();
+</script>
+
+</body>
+</html>
