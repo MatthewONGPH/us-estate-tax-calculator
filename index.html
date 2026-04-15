@@ -390,13 +390,14 @@
     </div>
 
     <div id="tab-brackets" class="panel">
-      <p class="section-label">US estate tax rate schedule — applies to NRA taxable estate above USD 60,000</p>
+      <p class="section-label">US estate tax rate schedule — IRS Table A (Unified Rate Schedule)</p>
       <table class="bracket-table">
         <thead>
           <tr>
-            <th>Taxable bracket (USD)</th>
-            <th>Rate</th>
-            <th>Max tax in bracket</th>
+            <th>Taxable amount over (Col. A)</th>
+            <th>Not over (Col. B)</th>
+            <th>Tax on col. A amount (Col. C)</th>
+            <th>Rate on excess (Col. D)</th>
           </tr>
         </thead>
         <tbody id="bracketBody"></tbody>
@@ -453,18 +454,18 @@
 
 <script>
 const brackets = [
-  { from: 0, to: 10000, rate: 0.18 },
-  { from: 10000, to: 20000, rate: 0.20 },
-  { from: 20000, to: 40000, rate: 0.22 },
-  { from: 40000, to: 60000, rate: 0.24 },
-  { from: 60000, to: 80000, rate: 0.26 },
-  { from: 80000, to: 100000, rate: 0.28 },
-  { from: 100000, to: 150000, rate: 0.30 },
-  { from: 150000, to: 250000, rate: 0.32 },
-  { from: 250000, to: 500000, rate: 0.34 },
-  { from: 500000, to: 750000, rate: 0.37 },
-  { from: 750000, to: 1000000, rate: 0.39 },
-  { from: 1000000, to: Infinity, rate: 0.40 }
+  { from: 0,        to: 10000,    baseTax: 0,       rate: 0.18 },
+  { from: 10000,    to: 20000,    baseTax: 1800,    rate: 0.20 },
+  { from: 20000,    to: 40000,    baseTax: 3800,    rate: 0.22 },
+  { from: 40000,    to: 60000,    baseTax: 8200,    rate: 0.24 },
+  { from: 60000,    to: 80000,    baseTax: 13000,   rate: 0.26 },
+  { from: 80000,    to: 100000,   baseTax: 18200,   rate: 0.28 },
+  { from: 100000,   to: 150000,   baseTax: 23800,   rate: 0.30 },
+  { from: 150000,   to: 250000,   baseTax: 38800,   rate: 0.32 },
+  { from: 250000,   to: 500000,   baseTax: 70800,   rate: 0.34 },
+  { from: 500000,   to: 750000,   baseTax: 155800,  rate: 0.37 },
+  { from: 750000,   to: 1000000,  baseTax: 248300,  rate: 0.39 },
+  { from: 1000000,  to: Infinity, baseTax: 345800,  rate: 0.40 }
 ];
 
 let currency = 'usd';
@@ -478,15 +479,12 @@ function fmt(val, c) {
 
 function computeTax(totalEstate) {
   if (totalEstate <= 0) return 0;
-  let remaining = totalEstate;
-  let tax = 0;
+  let bracket = brackets[brackets.length - 1];
   for (const b of brackets) {
-    if (remaining <= 0) break;
-    const chunk = Math.min(remaining, b.to - b.from);
-    tax += chunk * b.rate;
-    remaining -= chunk;
+    if (totalEstate <= b.to) { bracket = b; break; }
   }
-  return Math.max(0, tax - 13000);
+  const tentativeTax = bracket.baseTax + (totalEstate - bracket.from) * bracket.rate;
+  return Math.max(0, tentativeTax - 13000);
 }
 
 function getMarginalRate(taxableEstate) {
@@ -584,9 +582,11 @@ function buildBracketTable() {
   const tbody = document.getElementById('bracketBody');
   brackets.forEach(b => {
     const tr = document.createElement('tr');
-    const rangeText = b.to === Infinity ? 'Over ' + fmtB(b.from) : fmtB(b.from) + ' – ' + fmtB(b.to);
-    const maxTax = b.to === Infinity ? '—' : '$' + Math.round((b.to - b.from) * b.rate).toLocaleString();
-    tr.innerHTML = '<td>' + rangeText + '</td><td class="rate-cell">' + (b.rate*100).toFixed(0) + '%</td><td class="tax-cell">' + maxTax + '</td>';
+    const colA = fmtB(b.from);
+    const colB = b.to === Infinity ? '——' : fmtB(b.to);
+    const colC = '$' + b.baseTax.toLocaleString();
+    const colD = (b.rate * 100).toFixed(0) + '%';
+    tr.innerHTML = '<td>' + colA + '</td><td>' + colB + '</td><td class="tax-cell">' + colC + '</td><td class="rate-cell">' + colD + '</td>';
     tbody.appendChild(tr);
   });
 }
